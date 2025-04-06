@@ -30,7 +30,7 @@ const Login = () => {
       return ;
     }
     try {
-      const url = 'https://auth-login-backend.vercel.app/auth/login';
+      const url = 'http://localhost:4002/auth/login';
       const response = await fetch( url , {
         method: 'POST',
         headers: {
