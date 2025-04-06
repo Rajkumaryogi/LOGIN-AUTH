@@ -24,14 +24,14 @@
       },
       {
         "src": "/(.*)", 
-        "dest": "/signup.js",
+        "dest": "/index.js",
         "status": 200
       }
     ],
     "rewrites": [
       {
         "source": "/(.*)",
-        "destination": "/index.html"
+        "destination": "/index.js"
       }
     ]
   }
