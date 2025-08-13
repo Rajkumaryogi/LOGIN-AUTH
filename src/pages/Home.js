@@ -1,70 +1,102 @@
-import { useEffect, useState } from "react"
-import React from 'react'
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-
 
 const Home = () => {
   const [loggedInUser, setLoggedInUser] = useState('');
-  const [products, setProducts] = useState('');
-
+  const [products, setProducts] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
   const navigate = useNavigate();
 
   useEffect(() => {
-    setLoggedInUser(localStorage.getItem('loggedInUser'));
-  } , []);
+    const user = localStorage.getItem('loggedInUser');
+    if (!user) {
+      navigate('/login');
+      return;
+    }
+    setLoggedInUser(user);
+    fetchProducts();
+  }, [navigate]);
 
   const handleLogOut = () => {
     localStorage.removeItem('jwtToken');
     localStorage.removeItem('loggedInUser');
-    setTimeout(() => {
-      navigate('/login');
-    } , 1000);
-    alert('log Out successfully');
-    // window.location.href = '/login';
-  }
+    alert('Logged out successfully');
+    navigate('/login');
+  };
 
   const fetchProducts = async () => {
-    // final base_url = process.env.
     try {
-        const url = 'https://auth-backend-navy.vercel.app/product';
-        const headers = {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': localStorage.getItem('jwtToken')
-          }
+      setIsLoading(true);
+      setError(null);
+      
+      const token = localStorage.getItem('jwtToken');
+      if (!token) {
+        throw new Error('No authentication token found');
+      }
+
+      const response = await fetch('https://auth-backend-navy.vercel.app/product', {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
         }
-          const response = await fetch(url, headers);
-         const result = await response.json();
-          console.log(result);
-          setProducts(result);
-  }
-  catch (err) {
-    console.log('Error -> ', err);
-  }
-}
-useEffect(()=> {
-  fetchProducts()
-},[])
+      });
+
+      if (!response.ok) {
+        if (response.status === 401) {
+          // Token expired or invalid
+          handleLogOut();
+          throw new Error('Session expired. Please login again.');
+        }
+        throw new Error(`Failed to fetch products: ${response.status}`);
+      }
+
+      const result = await response.json();
+      setProducts(result || []);
+    } catch (err) {
+      console.error('Error fetching products:', err);
+      setError(err.message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   return (
-    <div>
-      <h1>{loggedInUser}</h1>
-      <h2>Welcome to the Home page</h2>
-      <h3>Available Products</h3>
-      <div>
-        {products && products.map((product) => (
-          <div key={product.id}>
-            <h4>{product.name} : {product.price}</h4>
-            <p>{product.description}</p>
-            {/* <p>{product.price}</p> */}
+    <div className="home-container">
+      <header>
+        <h1>Welcome, {loggedInUser || 'Guest'}!</h1>
+        <button onClick={handleLogOut} className="logout-btn">
+          Logout
+        </button>
+      </header>
+
+      <main>
+        <h2>Available Products</h2>
+        
+        {isLoading ? (
+          <div className="loading">Loading products...</div>
+        ) : error ? (
+          <div className="error">
+            {error}
+            <button onClick={fetchProducts}>Retry</button>
           </div>
-        ))}
-      </div>
-      <button onClick={handleLogOut} type='submit'>Logout </button>
+        ) : products.length === 0 ? (
+          <div>No products available</div>
+        ) : (
+          <div className="products-grid">
+            {products.map((product) => (
+              <div key={product._id || product.id} className="product-card">
+                <h3>{product.name}</h3>
+                <p className="price">${product.price}</p>
+                <p className="description">{product.description}</p>
+              </div>
+            ))}
+          </div>
+        )}
+      </main>
     </div>
-  )
-}
+  );
+};
 
-export default Home
-
+export default Home;
