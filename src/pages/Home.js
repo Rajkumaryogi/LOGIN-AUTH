@@ -26,7 +26,7 @@ const Home = () => {
   const fetchProducts = async () => {
     // final base_url = process.env.
     try {
-        const url = 'http://localhost:4002/product';
+        const url = 'https://auth-backend-navy.vercel.app/product';
         const headers = {
           method: 'GET',
           headers: {
